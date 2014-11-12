@@ -6,9 +6,13 @@ If you're like us here at [Buto](http://get.buto.tv) you'll have a lot of transi
 
 This quick and dirty go script will clear them out. I'm learning Go at the moment so this little task seemed perfect.
 
+Thanks to the support team at New Relic for their inspiration for this script.
+
 ##Instructions To run in go (uncompiled)
 
 `go run prune-dead-servers.go --api-key=<your NR api key>`
+
+Grab your API key from Account Settings > Data Sharing
 
 ###Or via Docker
 
