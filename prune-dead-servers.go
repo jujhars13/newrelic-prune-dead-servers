@@ -4,9 +4,9 @@
 package main
 
 import (
+	"encoding/json"
 	"flag" //cli parsing
-	"fmt"
-	"github.com/bitly/go-simplejson"
+	//"fmt"
 	"io/ioutil" //some convenience iostream methods
 	"log"
 	"net/http"
@@ -15,6 +15,14 @@ import (
 const API_ENDPOINT = "https://api.newrelic.com/v2/servers.json"
 
 var apiKey *string = flag.String("api-key", "", "Your newrelic api key")
+
+type nrJson struct {
+	Servers []struct {
+		Id        int    `json:"id"`
+		Name      string `json:"name"`
+		Reporting bool   `json:"reporting"`
+	} `json:"servers"`
+}
 
 func main() {
 	//get all the cli args
@@ -31,7 +39,8 @@ func main() {
 		log.Fatal(err)
 	}
 	req.Header.Add("X-Api-Key", *apiKey)
-	//1. GET server data from the api
+
+	// GET server data from the api
 	res, err := client.Do(req)
 	if err != nil {
 		log.Fatal(err)
@@ -48,31 +57,34 @@ func main() {
 		log.Fatal("Didn't get a 200 statuscode ", res.StatusCode)
 	}
 
-	//err = json.Unmarshal(body, &nrResponse)
-	js, err := simplejson.NewJson(body)
+	log.Print("raw_json", string(body))
+
+	unmarshaledJson := nrJson{}
+	err = json.Unmarshal(body, &unmarshaledJson)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	servers := js.Get("servers").MustArray()
-	if servers == nil {
-		log.Fatal("We don't have any servers returned")
-	}
-
-	for _, server := range servers {
-		//if server["reporting"] == false {
-		s := server.(map[string]interface{})
-		if s["reporting"] == false {
-			//log.Printf("Removing dead server ", s)
-			log.Printf("Removing dead server ", s["name"])
-			fmt.Print(s["id"])
-			server_id, _ := js.Int(s["id"])
-			RemoveServer(server_id)
+	//foreach over servers and remove dud ones
+	servers := unmarshaledJson.Servers
+	for _, s := range servers {
+		if s.Reporting == false {
+			RemoveServer(s.Id)
 		}
-		//		if server["id"] {
-		//			log.Printf("index", server.id)
-		//		}
 	}
+	//if server["reporting"] == false {
+	//		s := server.(map[string]interface{})
+	//		if s["reporting"] == false {
+	//log.Printf("Removing dead server ", s)
+	//			log.Printf("Removing dead server ", s["name"])
+	//			fmt.Print(s["id"])
+	//			server_id, _ := js.Int(s["id"])
+	//			RemoveServer(server_id)
+	//		}
+	//		if server["id"] {
+	//			log.Printf("index", server.id)
+	//		}
+	//	}
 	//}
 	//log.Printf("response", nrResponse.servers[0].id)
 
